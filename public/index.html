@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Jeu 1v1 Online</title>
+
+<style>
+body {
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: Arial;
+    overflow: hidden;
+}
+
+.player {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+}
+
+#ui {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+}
+
+#shop {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+button {
+    margin: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+</style>
+
+</head>
+<body>
+
+<div id="ui">
+    <h3>🎮 Jeu 1v1</h3>
+    <p>💰 Pièces : <span id="coins">0</span></p>
+    <p>👥 Joueurs en ligne : <span id="playersCount">0</span></p>
+</div>
+
+<div id="shop">
+    <h3>🛒 Boutique</h3>
+    <button onclick="buy('blue')">Skin Bleu (20)</button>
+    <button onclick="buy('green')">Skin Vert (20)</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+let myId;
+let players = {};
+
+socket.on("connect", () => {
+    myId = socket.id;
+});
+
+socket.on("players", (data) => {
+    players = data;
+    document.getElementById("playersCount").innerText = Object.keys(players).length;
+    draw();
+});
+
+function draw() {
+    document.querySelectorAll(".player").forEach(e => e.remove());
+
+    for (let id in players) {
+        let p = players[id];
+
+        let div = document.createElement("div");
+        div.className = "player";
+        div.style.left = p.x + "px";
+        div.style.top = "250px";
+        div.style.background = p.skin;
+
+        document.body.appendChild(div);
+
+        if (id === myId) {
+            document.getElementById("coins").innerText = p.coins;
+        }
+    }
+}
+
+// 🎮 Contrôles
+document.addEventListener("keydown", (e) => {
+    if (!players[myId]) return;
+
+    let x = players[myId].x;
+
+    if (e.key === "q") x -= 20;
+    if (e.key === "d") x += 20;
+
+    if (e.key === "f") socket.emit("attack");
+
+    socket.emit("move", { x });
+});
+
+// 🛒 Acheter skin
+function buy(skin) {
+    socket.emit("buySkin", skin);
+}
+</script>
+
+</body>
+</html>
